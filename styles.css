@@ -64,8 +64,8 @@ body {
 
 .portfolio-item-wrapper {
   
-  flex: 0 1 410px;
-  flex: 1 1 410px;
+  flex: 0 1 500px;  /* 500 for most cellphones to fit one per row*/
+  flex: 1 1 500px;
   border: 1px solid red;
   background: lightpink;
   font-size: 22px;
