@@ -1,0 +1,8 @@
+inner stuff does not resize
+
+advanced google css techniques:
+https://1linelayouts.glitch.me
+
+resources:
+unsplash
+font awesome
