@@ -68,8 +68,8 @@ body {
   
   flex: 0 1 410px;
   flex: 1 1 410px;
-  border: 1px solid red;
-  background: lightpink;
+  border: 1px solid #8a8a8a;
+  background: #c2c0c0;
   font-size: 22px;
   text-align: center;
   position: relative;
@@ -158,8 +158,8 @@ body {
   
   flex: 0 1 500px; /*no stretching*/
   flex: 1 1 500px; /*stretching*/
-  border: 1px solid red;
-  background: lightpink;
+  border: 1px solid #8a8a8a;
+  background: #c2c0c0;
   position: relative;
   background-position: center;
 }
