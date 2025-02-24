@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortgage Prepayment Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+    <link rel="stylesheet" href="profile.css">
+    <style>
+        .bodyx { 
+            font-family: Arial, sans-serif; 
+            margin: auto; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .containerx { 
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .column {
+            width: 48%;
+            margin-bottom: 20px;
+        }
+        input, button { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 8px 0; 
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button { 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        
+        .table-container {
+            overflow-x: auto;
+            padding: 0 20px;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            min-width: 600px;
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            text-align: right; 
+            font-size: 14px;
+        }
+        th { background-color: #f4f4f4; }
+        
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+            max-height: 400px;
+            margin-top: 20px;
+        }
+        /* Responsive styles */
+        @media (max-width: 600px) {
+            .containerx {
+                flex-direction: column;
+            }
+            .column { 
+                width: 100%; 
+            }
+            input, button { 
+                font-size: 14px; 
+                padding: 10px; 
+            }
+            th, td { 
+                font-size: 12px; 
+                padding: 8px; 
+            }
+        }
+    </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav-wrapper">
+      <div class="left-side">
+        <div class="nav-link-wrapper">
+          <a href="index.html">Home</a>
+        </div>
+
+        <div class="nav-link-wrapper">
+          <a href="about.html">About</a>
+        </div>
+
+        <div class="nav-link-wrapper active-nav-link">
+          <a href="mortgage.html">Mortgage</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bodyx">
+      <h2>Mortgage Information</h2>
+      <div>
+          <label>Loan Amount ($):</label>
+          <input type="number" id="loanAmount" value="3740">
+          
+          <label>Annual Interest Rate (%):</label>
+          <input type="number" id="interestRate" value="4.24">
+          
+          <label>Loan Term (Months):</label>
+          <input type="number" id="loanTerm" value="357">
+      </div>
+
+      <div class="containerx">
+          <div class="column">
+              <h2>Amortization Schedule</h2>
+              <label>Monthly Payment ($) <small>(can be left empty when entering Loan Amount)</small>:</label>
+              <input type="number" id="monthlyPayment" value="18.6483">
+              
+              <label>Monthly Prepayment ($):</label>
+              <input type="number" id="prepayment" value="11">
+              
+              <label>Start Prepayment After (Months):</label>
+              <input type="number" id="prepaymentStart" value="19">
+
+              <button onclick="calculate()">Calculate Amortization</button>
+
+              <h3>Loan Payoff Chart</h3>
+              <canvas id="loanChart"></canvas>
+
+              <h3>Amortization Schedule</h3>
+              <div class="table-container">
+                  <table>
+                      <thead>
+                          <tr>
+                              <th>Month</th>
+                              <th>Monthly Payment</th>
+                              <th>Prepayment</th>
+                              <th>Total Payment</th>
+                              <th>Principal</th>
+                              <th>Interest</th>
+                              <th>Remaining Balance</th>
+                          </tr>
+                      </thead>
+                      <tbody id="scheduleBody"></tbody>
+                  </table>
+              </div>
+          </div>
+
+          <div class="column">
+              <h2>Prepayment Calculator</h2>
+
+              <label>Lump Sum Prepayment ($):</label>
+              <input type="number" id="prepaymentAmount" value="500">
+
+              <label>Start Prepayment After (Months):</label>
+              <input type="number" id="prepaymentStartMonths" value="24">
+
+              <button onclick="calculateNewPayment()">Calculate New Monthly Payment</button>
+
+              <h3>New Monthly Payment</h3>
+              <p id="newPaymentResult"></p>
+          </div>
+      </div>
+
+      <script>
+          function calculateMortgageSchedule(principal, monthlyPayment, annualRate, totalMonths, monthlyPrepayment, prepaymentStart) {
+              let monthlyRate = (annualRate / 100) / 12;
+              let schedule = [];
+              let balance = principal;
+              let month = 0;
+
+              while (balance > 0 && month < totalMonths) {
+                  let interestPayment = balance * monthlyRate;
+                  let principalPayment = monthlyPayment - interestPayment;
+
+                  let extraPayment = (month >= prepaymentStart) ? Math.min(monthlyPrepayment, balance - principalPayment) : 0;
+                  balance -= (principalPayment + extraPayment);
+                  month++;
+
+                  schedule.push({
+                      month: month,
+                      monthlyPayment: monthlyPayment.toFixed(2),
+                      extraPayment: extraPayment.toFixed(2),
+                      totalPayment: (monthlyPayment + extraPayment).toFixed(2),
+                      principal: principalPayment.toFixed(2),
+                      interest: interestPayment.toFixed(2),
+                      remainingBalance: Math.max(balance, 0).toFixed(2)
+                  });
+
+                  if (balance <= 0) break;
+              }
+              return schedule;
+          }
+
+          function calculate() {
+              let loanAmount = parseFloat(document.getElementById("loanAmount").value) || null;
+              let monthlyPayment = parseFloat(document.getElementById("monthlyPayment").value) || null;
+              let annualRate = parseFloat(document.getElementById("interestRate").value);
+              let totalMonths = parseInt(document.getElementById("loanTerm").value);
+              let monthlyPrepayment = parseFloat(document.getElementById("prepayment").value);
+              let prepaymentStart = parseInt(document.getElementById("prepaymentStart").value);
+
+              if (!monthlyPayment && !loanAmount) {
+                  alert("Please enter either Loan Amount or Monthly Payment.");
+                  return;
+              }
+
+              if (monthlyPayment) {
+                  loanAmount = calculateLoanAmountFromPayment(monthlyPayment, annualRate, totalMonths);
+              } else if (loanAmount) {
+                  let monthlyRate = (annualRate / 100) / 12;
+                  monthlyPayment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -totalMonths));
+              }
+
+              let schedule = calculateMortgageSchedule(loanAmount, monthlyPayment, annualRate, totalMonths, monthlyPrepayment, prepaymentStart);
+              
+              let tableBody = document.getElementById("scheduleBody");
+              tableBody.innerHTML = "";
+              schedule.forEach(row => {
+                  let tr = `<tr>
+                      <td>${row.month}</td>
+                      <td>$${row.monthlyPayment}</td>
+                      <td>$${row.extraPayment}</td>
+                      <td>$${row.totalPayment}</td>
+                      <td>$${row.principal}</td>
+                      <td>$${row.interest}</td>
+                      <td>$${row.remainingBalance}</td>
+                  </tr>`;
+                  tableBody.innerHTML += tr;
+              });
+
+              updateChart(schedule);
+          }
+
+          function calculateLoanAmountFromPayment(monthlyPayment, annualRate, totalMonths) {
+              let monthlyRate = (annualRate / 100) / 12;
+              let loanAmount = (monthlyPayment * (1 - Math.pow(1 + monthlyRate, -totalMonths))) / monthlyRate;
+              return loanAmount;
+          }
+
+          function updateChart(schedule) {
+              let ctx = document.getElementById('loanChart').getContext('2d');
+              let months = schedule.map(row => row.month);
+              let balances = schedule.map(row => row.remainingBalance);
+
+              if (window.myChart) window.myChart.destroy();
+              window.myChart = new Chart(ctx, {
+                  type: 'line',
+                  data: {
+                      labels: months,
+                      datasets: [{
+                          label: 'Remaining Balance',
+                          data: balances,
+                          borderColor: 'blue',
+                          borderWidth: 2,
+                          fill: false
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                          x: { title: { display: true, text: 'Months' } },
+                          y: { title: { display: true, text: 'Balance ($)' } }
+                      }
+                  }
+              });
+          }
+
+          function calculateNewPayment() {
+              let loanAmount = parseFloat(document.getElementById("loanAmount").value) || null;
+              let annualRate = parseFloat(document.getElementById("interestRate").value);
+              let totalMonths = parseInt(document.getElementById("loanTerm").value);
+              let prepaymentAmount = parseFloat(document.getElementById("prepaymentAmount").value);
+              let prepaymentStart = parseInt(document.getElementById("prepaymentStartMonths").value);
+
+              if (!loanAmount || !prepaymentAmount) {
+                  alert("Please enter both Loan Amount and Prepayment Amount.");
+                  return;
+              }
+
+              let monthlyRate = (annualRate / 100) / 12;
+
+              let originalMonthlyPayment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -totalMonths));
+
+              let remainingBalance = loanAmount;
+
+              for (let month = 0; month < prepaymentStart; month++) {
+                  let interestPayment = remainingBalance * monthlyRate;
+                  let principalPayment = originalMonthlyPayment - interestPayment;
+                  remainingBalance -= principalPayment;
+              }
+
+              remainingBalance -= prepaymentAmount;
+              remainingBalance = Math.max(remainingBalance, 0);
+
+              let remainingMonths = totalMonths - prepaymentStart;
+              let newMonthlyPayment = (remainingBalance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -remainingMonths));
+
+              document.getElementById("newPaymentResult").innerText = `$${newMonthlyPayment.toFixed(2)}`;
+          }
+      </script>
+    </div>
+  </div>
+</body>
+</html>
