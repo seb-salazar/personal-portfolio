@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mortgage Prepayment Calculator</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
-    <link rel="stylesheet" href="profile.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
-        .bodyx { 
+        body { 
             font-family: Arial, sans-serif; 
             margin: auto; 
             padding: 20px;
@@ -16,7 +14,7 @@
             flex-direction: column;
             align-items: center;
         }
-        .containerx { 
+        .container { 
             width: 100%;
             display: flex;
             justify-content: space-between;
@@ -26,7 +24,7 @@
             width: 48%;
             margin-bottom: 20px;
         }
-        input, button { 
+        input, button, select { 
             width: 100%; 
             padding: 12px; 
             margin: 8px 0; 
@@ -44,6 +42,7 @@
         .table-container {
             overflow-x: auto;
             padding: 0 20px;
+            width: 100%;
         }
         table { 
             width: 100%; 
@@ -65,15 +64,49 @@
             max-height: 400px;
             margin-top: 20px;
         }
+
+        .prepayment-entry {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        
+        .prepayment-entry input {
+            margin: 0;
+        }
+        
+        .remove-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 8px 12px;
+            width: auto;
+        }
+        
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        
+        #prepaymentsList {
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .comparison-table {
+            margin-top: 30px;
+        }
+        
         /* Responsive styles */
         @media (max-width: 600px) {
-            .containerx {
+            .container {
                 flex-direction: column;
             }
             .column { 
                 width: 100%; 
             }
-            input, button { 
+            input, button, select { 
                 font-size: 14px; 
                 padding: 10px; 
             }
@@ -81,232 +114,434 @@
                 font-size: 12px; 
                 padding: 8px; 
             }
+            .prepayment-entry {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 <body>
-  <div class="container">
-    <div class="nav-wrapper">
-      <div class="left-side">
-        <div class="nav-link-wrapper">
-          <a href="index.html">Home</a>
-        </div>
 
-        <div class="nav-link-wrapper">
-          <a href="about.html">About</a>
-        </div>
-
-        <div class="nav-link-wrapper active-nav-link">
-          <a href="mortgage.html">Mortgage</a>
-        </div>
-      </div>
-
+    <h2>Mortgage Information</h2>
+    <div>
+        <label>Loan Amount ($):</label>
+        <input type="number" id="loanAmount" value="3740">
+        
+        <label>Annual Interest Rate (%):</label>
+        <input type="number" id="interestRate" value="4.24">
+        
+        <label>Loan Term (Months):</label>
+        <input type="number" id="loanTerm" value="357">
     </div>
 
-    <div class="bodyx">
-      <h2>Mortgage Information</h2>
-      <div>
-          <label>Loan Amount ($):</label>
-          <input type="number" id="loanAmount" value="3740">
-          
-          <label>Annual Interest Rate (%):</label>
-          <input type="number" id="interestRate" value="4.24">
-          
-          <label>Loan Term (Months):</label>
-          <input type="number" id="loanTerm" value="357">
-      </div>
+    <div class="container">
+        <div class="column">
+            <h2>Amortization Schedule</h2>
+            <label>Monthly Payment ($) <small>(can be left empty when entering Loan Amount)</small>:</label>
+            <input type="number" id="monthlyPayment" value="18.6483">
+            
+            <label>Monthly Prepayment ($):</label>
+            <input type="number" id="prepayment" value="11">
+            
+            <label>Start Prepayment After (Months):</label>
+            <input type="number" id="prepaymentStart" value="19">
 
-      <div class="containerx">
-          <div class="column">
-              <h2>Amortization Schedule</h2>
-              <label>Monthly Payment ($) <small>(can be left empty when entering Loan Amount)</small>:</label>
-              <input type="number" id="monthlyPayment" value="18.6483">
-              
-              <label>Monthly Prepayment ($):</label>
-              <input type="number" id="prepayment" value="11">
-              
-              <label>Start Prepayment After (Months):</label>
-              <input type="number" id="prepaymentStart" value="19">
+            <h3>Multiple Lump Sum Prepayments</h3>
+            <div id="prepaymentsList"></div>
+            
+            <div class="prepayment-entry">
+                <input type="number" id="newPrepaymentAmount" placeholder="Amount ($)" min="0">
+                <input type="number" id="newPrepaymentMonth" placeholder="After Month #" min="1">
+                <button onclick="addPrepayment()" style="width: auto;">Add Prepayment</button>
+            </div>
 
-              <button onclick="calculate()">Calculate Amortization</button>
+            <label>After lump sum payments:</label>
+            <select id="recalculationType">
+                <option value="reduceTerm">Keep same payment, reduce term</option>
+                <option value="reducePayment">Keep same term, reduce payment</option>
+            </select>
 
-              <h3>Loan Payoff Chart</h3>
-              <canvas id="loanChart"></canvas>
+            <button onclick="calculate()">Calculate Amortization</button>
 
-              <h3>Amortization Schedule</h3>
-              <div class="table-container">
-                  <table>
-                      <thead>
-                          <tr>
-                              <th>Month</th>
-                              <th>Monthly Payment</th>
-                              <th>Prepayment</th>
-                              <th>Total Payment</th>
-                              <th>Principal</th>
-                              <th>Interest</th>
-                              <th>Remaining Balance</th>
-                          </tr>
-                      </thead>
-                      <tbody id="scheduleBody"></tbody>
-                  </table>
-              </div>
-          </div>
+            <h3>Loan Payoff Comparison</h3>
+            <canvas id="loanChart"></canvas>
 
-          <div class="column">
-              <h2>Prepayment Calculator</h2>
-
-              <label>Lump Sum Prepayment ($):</label>
-              <input type="number" id="prepaymentAmount" value="500">
-
-              <label>Start Prepayment After (Months):</label>
-              <input type="number" id="prepaymentStartMonths" value="24">
-
-              <button onclick="calculateNewPayment()">Calculate New Monthly Payment</button>
-
-              <h3>New Monthly Payment</h3>
-              <p id="newPaymentResult"></p>
-          </div>
-      </div>
-
-      <script>
-          function calculateMortgageSchedule(principal, monthlyPayment, annualRate, totalMonths, monthlyPrepayment, prepaymentStart) {
-              let monthlyRate = (annualRate / 100) / 12;
-              let schedule = [];
-              let balance = principal;
-              let month = 0;
-
-              while (balance > 0 && month < totalMonths) {
-                  let interestPayment = balance * monthlyRate;
-                  let principalPayment = monthlyPayment - interestPayment;
-
-                  let extraPayment = (month >= prepaymentStart) ? Math.min(monthlyPrepayment, balance - principalPayment) : 0;
-                  balance -= (principalPayment + extraPayment);
-                  month++;
-
-                  schedule.push({
-                      month: month,
-                      monthlyPayment: monthlyPayment.toFixed(2),
-                      extraPayment: extraPayment.toFixed(2),
-                      totalPayment: (monthlyPayment + extraPayment).toFixed(2),
-                      principal: principalPayment.toFixed(2),
-                      interest: interestPayment.toFixed(2),
-                      remainingBalance: Math.max(balance, 0).toFixed(2)
-                  });
-
-                  if (balance <= 0) break;
-              }
-              return schedule;
-          }
-
-          function calculate() {
-              let loanAmount = parseFloat(document.getElementById("loanAmount").value) || null;
-              let monthlyPayment = parseFloat(document.getElementById("monthlyPayment").value) || null;
-              let annualRate = parseFloat(document.getElementById("interestRate").value);
-              let totalMonths = parseInt(document.getElementById("loanTerm").value);
-              let monthlyPrepayment = parseFloat(document.getElementById("prepayment").value);
-              let prepaymentStart = parseInt(document.getElementById("prepaymentStart").value);
-
-              if (!monthlyPayment && !loanAmount) {
-                  alert("Please enter either Loan Amount or Monthly Payment.");
-                  return;
-              }
-
-              if (monthlyPayment) {
-                  loanAmount = calculateLoanAmountFromPayment(monthlyPayment, annualRate, totalMonths);
-              } else if (loanAmount) {
-                  let monthlyRate = (annualRate / 100) / 12;
-                  monthlyPayment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -totalMonths));
-              }
-
-              let schedule = calculateMortgageSchedule(loanAmount, monthlyPayment, annualRate, totalMonths, monthlyPrepayment, prepaymentStart);
-              
-              let tableBody = document.getElementById("scheduleBody");
-              tableBody.innerHTML = "";
-              schedule.forEach(row => {
-                  let tr = `<tr>
-                      <td>${row.month}</td>
-                      <td>$${row.monthlyPayment}</td>
-                      <td>$${row.extraPayment}</td>
-                      <td>$${row.totalPayment}</td>
-                      <td>$${row.principal}</td>
-                      <td>$${row.interest}</td>
-                      <td>$${row.remainingBalance}</td>
-                  </tr>`;
-                  tableBody.innerHTML += tr;
-              });
-
-              updateChart(schedule);
-          }
-
-          function calculateLoanAmountFromPayment(monthlyPayment, annualRate, totalMonths) {
-              let monthlyRate = (annualRate / 100) / 12;
-              let loanAmount = (monthlyPayment * (1 - Math.pow(1 + monthlyRate, -totalMonths))) / monthlyRate;
-              return loanAmount;
-          }
-
-          function updateChart(schedule) {
-              let ctx = document.getElementById('loanChart').getContext('2d');
-              let months = schedule.map(row => row.month);
-              let balances = schedule.map(row => row.remainingBalance);
-
-              if (window.myChart) window.myChart.destroy();
-              window.myChart = new Chart(ctx, {
-                  type: 'line',
-                  data: {
-                      labels: months,
-                      datasets: [{
-                          label: 'Remaining Balance',
-                          data: balances,
-                          borderColor: 'blue',
-                          borderWidth: 2,
-                          fill: false
-                      }]
-                  },
-                  options: {
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      scales: {
-                          x: { title: { display: true, text: 'Months' } },
-                          y: { title: { display: true, text: 'Balance ($)' } }
-                      }
-                  }
-              });
-          }
-
-          function calculateNewPayment() {
-              let loanAmount = parseFloat(document.getElementById("loanAmount").value) || null;
-              let annualRate = parseFloat(document.getElementById("interestRate").value);
-              let totalMonths = parseInt(document.getElementById("loanTerm").value);
-              let prepaymentAmount = parseFloat(document.getElementById("prepaymentAmount").value);
-              let prepaymentStart = parseInt(document.getElementById("prepaymentStartMonths").value);
-
-              if (!loanAmount || !prepaymentAmount) {
-                  alert("Please enter both Loan Amount and Prepayment Amount.");
-                  return;
-              }
-
-              let monthlyRate = (annualRate / 100) / 12;
-
-              let originalMonthlyPayment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -totalMonths));
-
-              let remainingBalance = loanAmount;
-
-              for (let month = 0; month < prepaymentStart; month++) {
-                  let interestPayment = remainingBalance * monthlyRate;
-                  let principalPayment = originalMonthlyPayment - interestPayment;
-                  remainingBalance -= principalPayment;
-              }
-
-              remainingBalance -= prepaymentAmount;
-              remainingBalance = Math.max(remainingBalance, 0);
-
-              let remainingMonths = totalMonths - prepaymentStart;
-              let newMonthlyPayment = (remainingBalance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -remainingMonths));
-
-              document.getElementById("newPaymentResult").innerText = `$${newMonthlyPayment.toFixed(2)}`;
-          }
-      </script>
+            <h3>Amortization Schedule (With Prepayments)</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Monthly Payment</th>
+                            <th>Monthly Prepayment</th>
+                            <th>Lump Sum</th>
+                            <th>Total Payment</th>
+                            <th>Principal</th>
+                            <th>Interest</th>
+                            <th>Remaining Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody"></tbody>
+                </table>
+            </div>
+            
+            <h3>Comparison Summary</h3>
+            <div class="table-container comparison-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Total Payments</th>
+                            <th>Total Interest</th>
+                            <th>Loan Term</th>
+                            <th>Monthly Payment</th>
+                            <th>Interest Savings</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-  </div>
+
+    <script>
+        // Array to hold lump sum prepayments
+        let lumpSumPrepayments = [];
+        
+        // Add a prepayment to the list
+        function addPrepayment() {
+            const amount = parseFloat(document.getElementById("newPrepaymentAmount").value);
+            const month = parseInt(document.getElementById("newPrepaymentMonth").value);
+            
+            if (!amount || !month || isNaN(amount) || isNaN(month) || amount <= 0 || month <= 0) {
+                alert("Please enter valid amount and month values.");
+                return;
+            }
+            
+            lumpSumPrepayments.push({ amount, month });
+            lumpSumPrepayments.sort((a, b) => a.month - b.month);
+            
+            updatePrepaymentsList();
+            
+            // Clear inputs
+            document.getElementById("newPrepaymentAmount").value = "";
+            document.getElementById("newPrepaymentMonth").value = "";
+        }
+        
+        // Remove a prepayment from the list
+        function removePrepayment(index) {
+            lumpSumPrepayments.splice(index, 1);
+            updatePrepaymentsList();
+        }
+        
+        // Update the prepayments list display
+        function updatePrepaymentsList() {
+            const list = document.getElementById("prepaymentsList");
+            list.innerHTML = "";
+            
+            lumpSumPrepayments.forEach((payment, index) => {
+                const entry = document.createElement("div");
+                entry.className = "prepayment-entry";
+                
+                entry.innerHTML = `
+                    <span>$${payment.amount.toFixed(2)} after month ${payment.month}</span>
+                    <button class="remove-btn" onclick="removePrepayment(${index})">Remove</button>
+                `;
+                
+                list.appendChild(entry);
+            });
+        }
+
+        function calculateMortgageSchedule(principal, monthlyPayment, annualRate, totalMonths, monthlyPrepayment, prepaymentStart, lumpSumPrepayments, recalculationType) {
+            let monthlyRate = (annualRate / 100) / 12;
+            let schedule = [];
+            let balance = principal;
+            let month = 0;
+            let currentMonthlyPayment = monthlyPayment;
+            let remainingMonths = totalMonths;
+            let lumpSumIndex = 0;
+
+            // Deep copy the lump sum prepayments array
+            let pendingLumpSums = JSON.parse(JSON.stringify(lumpSumPrepayments));
+            
+            while (balance > 0 && month < totalMonths) {
+                let interestPayment = balance * monthlyRate;
+                let principalPayment = currentMonthlyPayment - interestPayment;
+
+                let extraPayment = (month >= prepaymentStart) ? Math.min(monthlyPrepayment, balance - principalPayment) : 0;
+                let lumpSumPayment = 0;
+                
+                // Check if there's a lump sum payment due this month
+                let lumpSumIndicesToRemove = [];
+                pendingLumpSums.forEach((payment, index) => {
+                    if (payment.month === month + 1) { // +1 because month is 0-indexed in the loop
+                        lumpSumPayment += payment.amount;
+                        lumpSumIndicesToRemove.push(index);
+                    }
+                });
+                
+                // Remove processed lump sums (in reverse order to avoid index issues)
+                for (let i = lumpSumIndicesToRemove.length - 1; i >= 0; i--) {
+                    pendingLumpSums.splice(lumpSumIndicesToRemove[i], 1);
+                }
+                
+                // Apply lump sum payment
+                balance -= (principalPayment + extraPayment + lumpSumPayment);
+                
+                // If we have a lump sum payment and want to recalculate
+                if (lumpSumPayment > 0) {
+                    // If balance is completely paid off
+                    if (balance <= 0) {
+                        balance = 0;
+                    } 
+                    // Otherwise recalculate based on selected option
+                    else if (recalculationType === 'reducePayment') {
+                        // Keep term the same, reduce payment
+                        remainingMonths = totalMonths - (month + 1);
+                        currentMonthlyPayment = (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -remainingMonths));
+                    }
+                    // For 'reduceTerm', keep the payment the same
+                }
+                
+                month++;
+                
+                schedule.push({
+                    month: month,
+                    monthlyPayment: currentMonthlyPayment.toFixed(2),
+                    extraPayment: extraPayment.toFixed(2),
+                    lumpSumPayment: lumpSumPayment.toFixed(2),
+                    totalPayment: (currentMonthlyPayment + extraPayment + lumpSumPayment).toFixed(2),
+                    principal: principalPayment.toFixed(2),
+                    interest: interestPayment.toFixed(2),
+                    remainingBalance: Math.max(balance, 0).toFixed(2)
+                });
+
+                if (balance <= 0) break;
+            }
+            return schedule;
+        }
+
+        function calculate() {
+            let loanAmount = parseFloat(document.getElementById("loanAmount").value) || null;
+            let monthlyPayment = parseFloat(document.getElementById("monthlyPayment").value) || null;
+            let annualRate = parseFloat(document.getElementById("interestRate").value);
+            let totalMonths = parseInt(document.getElementById("loanTerm").value);
+            let monthlyPrepayment = parseFloat(document.getElementById("prepayment").value) || 0;
+            let prepaymentStart = parseInt(document.getElementById("prepaymentStart").value);
+            let recalculationType = document.getElementById("recalculationType").value;
+
+            if (!monthlyPayment && !loanAmount) {
+                alert("Please enter either Loan Amount or Monthly Payment.");
+                return;
+            }
+
+            if (monthlyPayment) {
+                loanAmount = calculateLoanAmountFromPayment(monthlyPayment, annualRate, totalMonths);
+            } else if (loanAmount) {
+                let monthlyRate = (annualRate / 100) / 12;
+                monthlyPayment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -totalMonths));
+            }
+
+            // Calculate schedule with prepayments
+            let schedule = calculateMortgageSchedule(
+                loanAmount, 
+                monthlyPayment, 
+                annualRate, 
+                totalMonths, 
+                monthlyPrepayment, 
+                prepaymentStart, 
+                lumpSumPrepayments,
+                recalculationType
+            );
+            
+            // Calculate schedule without prepayments for comparison
+            let baseSchedule = calculateMortgageSchedule(
+                loanAmount, 
+                monthlyPayment, 
+                annualRate, 
+                totalMonths, 
+                0, 
+                Infinity, 
+                [],
+                'reduceTerm'
+            );
+
+            // Display amortization schedule
+            let tableBody = document.getElementById("scheduleBody");
+            tableBody.innerHTML = "";
+            
+            schedule.forEach(row => {
+                let tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row.month}</td>
+                    <td>$${row.monthlyPayment}</td>
+                    <td>$${row.extraPayment}</td>
+                    <td>$${row.lumpSumPayment}</td>
+                    <td>$${row.totalPayment}</td>
+                    <td>$${row.principal}</td>
+                    <td>$${row.interest}</td>
+                    <td>$${row.remainingBalance}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Update comparison summary
+            updateComparisonSummary(baseSchedule, schedule, monthlyPayment);
+            
+            // Update chart with comparison
+            updateComparisonChart(baseSchedule, schedule);
+        }
+
+        function updateComparisonSummary(baseSchedule, prepaymentSchedule, originalMonthlyPayment) {
+            const comparisonBody = document.getElementById("comparisonBody");
+            comparisonBody.innerHTML = "";
+            
+            // Calculate totals for base schedule
+            let baseTotalPayments = 0;
+            let baseTotalInterest = 0;
+            
+            baseSchedule.forEach(row => {
+                baseTotalPayments += parseFloat(row.monthlyPayment);
+                baseTotalInterest += parseFloat(row.interest);
+            });
+            
+            // Calculate totals for prepayment schedule
+            let prepayTotalPayments = 0;
+            let prepayTotalInterest = 0;
+            let prepayTotalLumpSum = 0;
+            let prepayTotalMonthlyExtra = 0;
+            
+            prepaymentSchedule.forEach(row => {
+                prepayTotalPayments += parseFloat(row.monthlyPayment);
+                prepayTotalInterest += parseFloat(row.interest);
+                prepayTotalLumpSum += parseFloat(row.lumpSumPayment);
+                prepayTotalMonthlyExtra += parseFloat(row.extraPayment);
+            });
+            
+            // Get final monthly payment from last month of prepayment schedule
+            const finalMonthlyPayment = prepaymentSchedule.length > 0 ? 
+                parseFloat(prepaymentSchedule[prepaymentSchedule.length - 1].monthlyPayment) : 
+                originalMonthlyPayment;
+            
+            // Create base case row
+            const baseRow = document.createElement("tr");
+            baseRow.innerHTML = `
+                <td>No Prepayments</td>
+                <td>$${baseTotalPayments.toFixed(2)}</td>
+                <td>$${baseTotalInterest.toFixed(2)}</td>
+                <td>${baseSchedule.length} months</td>
+                <td>$${originalMonthlyPayment.toFixed(2)}</td>
+                <td>-</td>
+            `;
+            comparisonBody.appendChild(baseRow);
+            
+            // Create prepayment case row
+            const prepayRow = document.createElement("tr");
+            prepayRow.innerHTML = `
+                <td>With Prepayments</td>
+                <td>$${(prepayTotalPayments + prepayTotalLumpSum + prepayTotalMonthlyExtra).toFixed(2)}</td>
+                <td>$${prepayTotalInterest.toFixed(2)}</td>
+                <td>${prepaymentSchedule.length} months</td>
+                <td>$${finalMonthlyPayment.toFixed(2)}</td>
+                <td>$${(baseTotalInterest - prepayTotalInterest).toFixed(2)}</td>
+            `;
+            comparisonBody.appendChild(prepayRow);
+        }
+
+        function calculateLoanAmountFromPayment(monthlyPayment, annualRate, totalMonths) {
+            let monthlyRate = (annualRate / 100) / 12;
+            let loanAmount = (monthlyPayment * (1 - Math.pow(1 + monthlyRate, -totalMonths))) / monthlyRate;
+            return loanAmount;
+        }
+
+        function updateComparisonChart(baseSchedule, prepaymentSchedule) {
+            let ctx = document.getElementById('loanChart').getContext('2d');
+            
+            // Prepare data for base schedule
+            let baseMonths = baseSchedule.map(row => row.month);
+            let baseBalances = baseSchedule.map(row => parseFloat(row.remainingBalance));
+            
+            // Prepare data for prepayment schedule
+            let prepayMonths = prepaymentSchedule.map(row => row.month);
+            let prepayBalances = prepaymentSchedule.map(row => parseFloat(row.remainingBalance));
+            
+            // Find months where lump sum payments occur
+            let lumpSumPoints = [];
+            prepaymentSchedule.forEach((row, index) => {
+                if (parseFloat(row.lumpSumPayment) > 0) {
+                    lumpSumPoints.push({
+                        x: row.month,
+                        y: parseFloat(row.remainingBalance)
+                    });
+                }
+            });
+            
+            if (window.myChart) window.myChart.destroy();
+            
+            window.myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Without Prepayments',
+                            data: baseMonths.map((month, i) => ({x: month, y: baseBalances[i]})),
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'With Prepayments',
+                            data: prepayMonths.map((month, i) => ({x: month, y: prepayBalances[i]})),
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Lump Sum Payments',
+                            data: lumpSumPoints,
+                            backgroundColor: 'rgba(75, 192, 192, 1)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 0,
+                            pointRadius: 6,
+                            pointStyle: 'triangle',
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            type: 'linear',
+                            title: { display: true, text: 'Months' } 
+                        },
+                        y: { 
+                            title: { display: true, text: 'Balance ($)' },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += '$' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+
 </body>
 </html>
